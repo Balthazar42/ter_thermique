@@ -1,0 +1,8 @@
+mur.gif description 
+-Plus la température est blanche/jaune, plus elle est haute. Plus la température est foncée/noire, plus elle est basse (oui c'est bizarre).
+-A gauche, l'intérieur de la maison à température initiale ambiante 25°C. A droite, l'extérieur à température exogène variant sinsuoïdalement entre ~5°C et ~18°C.
+-Entre les deux espaces, un mur constitué de plusieurs couches. 
+-Cycle de 4 (bientôt 14) jours. On remarque que l'intérieur de la maison se refroidit jusqu'à être forcé à suivre l'évolution de l'extérieur à déphasage près. On peut penser à un régime forcé.
+-Pas de chauffage.
+-Paramètres intéressants : nombre de couches, capacité thermique des couches du mur, différentiel de température entre l'intérieur et l'extérieur.
+-Idées intéressantes à faire : Etudier le régime permanent de ce modèle, vérifier que c'est une régime forcé (je crois que cela aiderait quand on rajoutera un chauffage)
