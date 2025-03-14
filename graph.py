@@ -63,13 +63,14 @@ class DiffusionGraph:
         scatter = self.ax.scatter(
             x=self.pos[:, 0],
             y=self.pos[:, 1],
-            s=self.C / np.max(self.C) * 1000,
+            s=self.C / np.max(self.C) * 500,
             c=self.T,
             marker="o",
             cmap="plasma",
             vmin=np.min(self.initial),
             vmax=np.max(self.initial),
             edgecolors=["w" if bc is None else "g" for bc in self.boundary_conditions],
+            linewidths=3,
             zorder=np.inf,
         )
         return scatter
@@ -95,7 +96,7 @@ class DiffusionGraph:
 
         return edges
 
-    def animate(self, t_start: float=None, t_end: float=None, dt: float=None, initial: np.ndarray[float]=None) -> ArtistAnimation:
+    def animate(self, t_start: float=None, t_end: float=None, dt: float=None, initial: np.ndarray=None) -> ArtistAnimation:
         self.t_start = t_start if t_start is not None else self.t_start
         self.t_end = t_end if t_end is not None else self.t_end
         self.dt = dt if dt is not None else self.dt
@@ -137,37 +138,72 @@ class DiffusionGraph:
         plt.show()
 
 
-if __name__ == "__main__":
+triangle = DiffusionGraph(
+    n=3,
+    C=np.array([1, 2, 1]),
+    G=0.1 * np.array([
+        [0, 1, 1],
+        [1, 0, 1],
+        [1, 1, 0],
+    ]),
+    pos=np.array([[-1, 0], [0, 1], [1, 0]]),
+)
+
+gigraphe = DiffusionGraph(
+    n=8,
+    C=np.array([5, 5, 1, 1, 1, 1, 3, 2]),
+    G=0.2 * np.array([
+        [0, 3, 2, 2, 0, 0, 0, 0],
+        [3, 0, 0, 0, 2, 2, 1, 0],
+        [2, 0, 0, 0, 0, 0, 0, 0],
+        [2, 0, 0, 0, 0, 0, 0, 0],
+        [0, 2, 0, 0, 0, 0, 0, 0],
+        [0, 2, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 2],
+        [0, 0, 0, 0, 0, 0, 2, 0],
+    ]),
+    pos=np.array([
+        [-2, 0],
+        [0, 0],
+        [-2.5, -1],
+        [-1.5, -1],
+        [-0.5, -1],
+        [0.5, -1],
+        [0, 2.5],
+        [1, 2.5],
+    ]),
+)
+
+
+def line(n: int, period: float=None) -> DiffusionGraph:
+    G = np.zeros((n, n))
+    for i in range(n-1):
+        G[i, i+1] = 1
+        G[i+1, i] = 1
     g = DiffusionGraph(
-        n=8,
-        C=np.array([5, 5, 1, 1, 1, 1, 3, 2]),
-        G=0.2*np.array([
-            [0, 3, 2, 2, 0, 0, 0, 0],
-            [3, 0, 0, 0, 2, 2, 1, 0],
-            [2, 0, 0, 0, 0, 0, 0, 0],
-            [2, 0, 0, 0, 0, 0, 0, 0],
-            [0, 2, 0, 0, 0, 0, 0, 0],
-            [0, 2, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 2],
-            [0, 0, 0, 0, 0, 0, 2, 0],
-        ]),
-        pos=np.array([
-            [-2, 0],
-            [0, 0],
-            [-2.5, -1],
-            [-1.5, -1],
-            [-0.5, -1],
-            [0.5, -1],
-            [0, 2.5],
-            [1, 2.5],
-        ]),
+        n=n,
+        C=np.ones(n),
+        G=G,
+        pos=np.stack((np.arange(n), np.zeros(n)), axis=1)
     )
+
+    if period is not None:
+        def wave(graph: DiffusionGraph, i: int):
+            return 10 * np.sin(2 * np.pi / period * graph.t)
+        g.boundary_conditions[0] = wave
+
+    return g
+
+
+if __name__ == "__main__":
+    n=5
+    g = line(n, period=10)
     anim = g.animate(
         t_start=0,
-        t_end=20,
+        t_end=30,
         dt=0.1,
-        # initial=np.array([0, 5, 10])
-        initial=np.random.uniform(0, 10, g.n)
+        initial=np.linspace(-10, 10, n),
     )
-    anim.save("gigraphe_thermique.gif")
+    g.fig.set_size_inches(8, 4)
+    anim.save("line.gif")
     # g.show()
