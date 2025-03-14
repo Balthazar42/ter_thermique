@@ -2,8 +2,9 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib.artist import Artist
+from matplotlib.animation import ArtistAnimation
+from matplotlib.patheffects import TickedStroke, Normal
 from matplotlib import pyplot as plt
-import matplotlib.animation as animation
 
 
 class DiffusionGraph:
@@ -24,7 +25,7 @@ class DiffusionGraph:
         self.C = C
         self.G = G
         # Matrix for the ODE system dT/dt = A * T
-        self.A = np.diag(1 / C) * (G - np.diag(np.sum(G, axis=1)))
+        self.A = np.diag(1 / C) @ (G - np.diag(np.sum(G, axis=1)))
 
         # Simulation parameters and data
         self.t_start = None     # Simulation time start
@@ -39,21 +40,20 @@ class DiffusionGraph:
         # Plotting information
         self.pos = pos
         self.fig, self.ax = fig, ax # Matplotlib figure and axes
-        self.anim_artists = []
 
-    def mean_T(self) -> float:
+    def mean_temp(self) -> float:
         """
         Weighted mean temperature of the graph
         Constant over time if the system is isolated
         """
         return np.sum(self.C * self.T) / np.sum(self.C)
 
-    def msd_T(self) -> float:
+    def msd_temp(self) -> float:
         """
         Weighted mean square deviation of the temperatures
         Monotonically decreasing over time if the system is isolated
         """
-        return np.sum(self.C * (self.T - self.mean_T()) ** 2) / np.sum(self.C)
+        return np.sum(self.C * (self.T - self.mean_temp()) ** 2) / np.sum(self.C)
 
     def draw_vertices(self) -> Artist:
         """
@@ -63,24 +63,43 @@ class DiffusionGraph:
         scatter = self.ax.scatter(
             x=self.pos[:, 0],
             y=self.pos[:, 1],
-            s=self.C / np.max(self.C) * 50,
+            s=self.C / np.max(self.C) * 1000,
             c=self.T,
             marker="o",
             cmap="plasma",
             vmin=np.min(self.initial),
             vmax=np.max(self.initial),
             edgecolors=["w" if bc is None else "g" for bc in self.boundary_conditions],
+            zorder=np.inf,
         )
         return scatter
 
     def draw_edges(self) -> list[Artist]:
-        pass
+        edges = []
 
-    def animate(self, t_start: float=None, t_end: float=None, dt: float=None, initial: np.ndarray[float]=None):
-        self.t_start = t_start or self.t_start
-        self.t_end = t_end or self.t_end
-        self.dt = dt or self.dt
-        self.initial = initial or self.initial
+        for i in range(self.n):
+            for j in range(i):
+                if self.G[i, j] != 0:
+                    angle = np.pi / 2 + np.atan(3 * self.G[i, j] * (self.T[i] - self.T[j]) / np.max(self.G) / (np.max(self.initial) - np.min(self.initial)))
+                    edges.extend(self.ax.plot(
+                        (self.pos[i, 0], self.pos[j, 0]), # x
+                        (self.pos[i, 1], self.pos[j, 1]), # y
+                        color="w",
+                        linewidth=self.G[i, j] / np.max(self.G) * 2,
+                        path_effects=[
+                            TickedStroke(spacing=30, angle= angle * 180 / np.pi, length=0.2),
+                            TickedStroke(spacing=30, angle=-angle * 180 / np.pi, length=0.2),
+                            Normal(),
+                        ],
+                    ))
+
+        return edges
+
+    def animate(self, t_start: float=None, t_end: float=None, dt: float=None, initial: np.ndarray[float]=None) -> ArtistAnimation:
+        self.t_start = t_start if t_start is not None else self.t_start
+        self.t_end = t_end if t_end is not None else self.t_end
+        self.dt = dt if dt is not None else self.dt
+        self.initial = initial if initial is not None else self.initial
 
         if self.t_start is None or self.t_end is None or self.dt is None or self.initial is None:
             raise RuntimeError("Missing simulation parameters")
@@ -93,15 +112,15 @@ class DiffusionGraph:
             self.fig.set_facecolor("0.2")
             self.ax.set_facecolor("0.2")
             self.ax.set_axis_off()
-        self.anim_artists = []
 
+        anim_artists = []
         while self.t < self.t_end:
             # Draw the current state of the graph and add it to the animation
-            self.anim_artists.append(self.draw_edges())
-            self.anim_artists[-1].append(self.draw_vertices())
+            anim_artists.append(self.draw_edges())
+            anim_artists[-1].append(self.draw_vertices())
 
             # Explicit Euler integration of the ODE
-            new_T = self.T + self.dt * self.A * self.T
+            new_T = self.T + self.dt * self.A @ self.T
 
             # Compute boundary conditions if any
             for i in range(self.n):
@@ -111,3 +130,44 @@ class DiffusionGraph:
             # Apply changes
             self.t += self.dt
             self.T = new_T
+
+        return ArtistAnimation(fig=self.fig, artists=anim_artists, interval=50)
+
+    def show(self):
+        plt.show()
+
+
+if __name__ == "__main__":
+    g = DiffusionGraph(
+        n=8,
+        C=np.array([5, 5, 1, 1, 1, 1, 3, 2]),
+        G=0.2*np.array([
+            [0, 3, 2, 2, 0, 0, 0, 0],
+            [3, 0, 0, 0, 2, 2, 1, 0],
+            [2, 0, 0, 0, 0, 0, 0, 0],
+            [2, 0, 0, 0, 0, 0, 0, 0],
+            [0, 2, 0, 0, 0, 0, 0, 0],
+            [0, 2, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 0, 2, 0],
+        ]),
+        pos=np.array([
+            [-2, 0],
+            [0, 0],
+            [-2.5, -1],
+            [-1.5, -1],
+            [-0.5, -1],
+            [0.5, -1],
+            [0, 2.5],
+            [1, 2.5],
+        ]),
+    )
+    anim = g.animate(
+        t_start=0,
+        t_end=20,
+        dt=0.1,
+        # initial=np.array([0, 5, 10])
+        initial=np.random.uniform(0, 10, g.n)
+    )
+    anim.save("gigraphe_thermique.gif")
+    # g.show()
