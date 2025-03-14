@@ -76,6 +76,10 @@ class DiffusionGraph:
         return scatter
 
     def draw_edges(self) -> list[Artist]:
+        """
+        Plot the edges of the graph to this object's Axes
+        :return: list of Artists representing the plotted lines
+        """
         edges = []
 
         for i in range(self.n):
@@ -97,6 +101,15 @@ class DiffusionGraph:
         return edges
 
     def animate(self, t_start: float=None, t_end: float=None, dt: float=None, initial: np.ndarray=None) -> ArtistAnimation:
+        """
+        Simulate the behaviour of the graph and render it to the figure as an animation
+
+        :param t_start: Simulation time start
+        :param t_end: Simulation time end
+        :param dt: Simulation time step
+        :param initial: Initial temperature conditions
+        :return: matplotlib ArtistAnimation, must be saved to a variable until show is called
+        """
         self.t_start = t_start if t_start is not None else self.t_start
         self.t_end = t_end if t_end is not None else self.t_end
         self.dt = dt if dt is not None else self.dt
@@ -195,15 +208,41 @@ def line(n: int, period: float=None) -> DiffusionGraph:
     return g
 
 
+def plane(p: int, q: int) -> DiffusionGraph:
+    G = np.zeros((p*q, p*q))
+    for i in range(p):
+        for j in range(q):
+            if i != 0:
+                G[i + j * p, i - 1 + j * p] = 1
+            if i != p - 1:
+                G[i + j * p, i + 1 + j * p] = 1
+            if j != 0:
+                G[i + j * p, i + (j - 1) * p] = 1
+            if j != q - 1:
+                G[i + j * p, i + (j + 1) * p] = 1
+
+    x, y = np.meshgrid(np.arange(p), np.arange(q))
+    pos = np.stack((x.flatten(), y.flatten()), axis=1)
+    g = DiffusionGraph(
+        n=p*q,
+        C=np.ones(p*q),
+        G=G*0.1,
+        pos=pos,
+    )
+    return g
+
+
 if __name__ == "__main__":
-    n=5
-    g = line(n, period=10)
+    p, q = 5, 5
+    g = plane(p, q)
+    # g.boundary_conditions[12] = lambda gr, i: 10 * np.sin(2*np.pi/10*gr.t)
+    initial = np.random.uniform(-10, 10, (p, q))
     anim = g.animate(
         t_start=0,
-        t_end=30,
+        t_end=15,
         dt=0.1,
-        initial=np.linspace(-10, 10, n),
+        initial=initial.flatten(),
     )
-    g.fig.set_size_inches(8, 4)
-    anim.save("line.gif")
+    g.fig.set_size_inches(8, 8)
+    anim.save("plane.gif")
     # g.show()
