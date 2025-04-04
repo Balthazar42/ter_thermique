@@ -147,8 +147,51 @@ class DiffusionGraph:
 
         return ArtistAnimation(fig=self.fig, artists=anim_artists, interval=50)
 
-    def show(self):
-        plt.show()
+    def simulate(self, t_start: float=None, t_end: float=None, dt: float=None, initial: np.ndarray=None) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Simulate the behaviour of the graph and output the computed temperatures
+        Returns a tuple (t, T) where
+        t is a 1D array of the times for which the solution was computed
+        T is a 2D array of the temperatures of the vertices over time
+        T has the following shape : (number of vertices, number of time steps)
+
+        :param t_start: Simulation time start
+        :param t_end: Simulation time end
+        :param dt: Simulation time step
+        :param initial: Initial temperature conditions
+        :return: vector of times, matrix of temperatures
+        """
+        self.t_start = t_start if t_start is not None else self.t_start
+        self.t_end = t_end if t_end is not None else self.t_end
+        self.dt = dt if dt is not None else self.dt
+        self.initial = initial if initial is not None else self.initial
+
+        if self.t_start is None or self.t_end is None or self.dt is None or self.initial is None:
+            raise RuntimeError("Missing simulation parameters")
+
+        t = np.arange(self.t_start, self.t_end, self.dt)
+        T = np.empty((self.n, len(t)))
+        T[:, 0] = self.initial
+
+        self.t = self.t_start
+        self.T = self.initial
+        for j in range(1, len(t)):
+            # Explicit Euler integration of the ODE
+            T[:, j] = self.T + self.dt * self.A @ self.T
+
+            # Compute boundary conditions if any
+            for i in range(self.n):
+                if self.boundary_conditions[i] is not None:
+                    T[i, j] = self.boundary_conditions[i](self, i)
+
+            # Apply changes to the graph
+            self.t = t[j]
+            self.T = T[:, j]
+
+        return t, T
+
+
+
 
 
 triangle = DiffusionGraph(
@@ -189,6 +232,15 @@ gigraphe = DiffusionGraph(
 
 
 def line(n: int, period: float=None) -> DiffusionGraph:
+    """
+    Create a line graph with uniform capacitance and conductance
+    Optionally, force the first vertex's temperature to follow
+    the function of time 10*sin(2pi/T)
+
+    :param n: Number of vertices
+    :param period: Optional period of the first vertex's temperature oscillation
+    :return: Line graph
+    """
     G = np.zeros((n, n))
     for i in range(n-1):
         G[i, i+1] = 1
@@ -209,6 +261,15 @@ def line(n: int, period: float=None) -> DiffusionGraph:
 
 
 def plane(p: int, q: int) -> DiffusionGraph:
+    """
+    Create a square grid graph with uniform capacitance and conductance
+
+
+    :param p: Number of lines
+    :param q: Number of columns
+    :return: Plane graph
+    """
+
     G = np.zeros((p*q, p*q))
     for i in range(p):
         for j in range(q):
@@ -237,12 +298,12 @@ if __name__ == "__main__":
     g = plane(p, q)
     # g.boundary_conditions[12] = lambda gr, i: 10 * np.sin(2*np.pi/10*gr.t)
     initial = np.random.uniform(-10, 10, (p, q))
-    anim = g.animate(
+    t, T = g.simulate(
         t_start=0,
         t_end=15,
         dt=0.1,
         initial=initial.flatten(),
     )
-    g.fig.set_size_inches(8, 8)
-    anim.save("plane.gif")
-    # g.show()
+    print(t.shape, T.shape)
+    print(t[0], T[:, 0])
+    print(t[-1], T[:, -1])
