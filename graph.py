@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
@@ -32,7 +33,7 @@ class DiffusionGraph:
         self.t_end = None       # Simulation time end
         self.dt = None          # Simulation time step
         self.initial = None     # Initial temperatures
-        self.boundary_conditions: list[callable] = [None] * n
+        self.boundary_conditions: list[Callable[[DiffusionGraph, int], float] | None] = [None] * n
 
         self.t = 0              # Time
         self.T = np.zeros(n)    # Temperatures of the nodes
