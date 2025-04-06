@@ -38,9 +38,10 @@ def harmonic_response(graph: DiffusionGraph, freq: float) -> tuple[tuple[np.ndar
         dt=1 / (freq * 1000),
         initial=np.zeros(graph.n),
     )
+    mean_T = graph.mean_temp(T)
 
-    m = 1/1000 * np.sum(T[0][-1000:] * np.exp(-2j * np.pi * freq * t[-1000:]))
-    return (t, power(t), T[0]), 2 * np.abs(m), np.angle(m) + np.pi / 2
+    m = 1/1000 * np.sum(mean_T[-1000:] * np.exp(-2j * np.pi * freq * t[-1000:]))
+    return (t, power(t), mean_T), 2 * np.abs(m), np.angle(m) + np.pi / 2
 
 
 def bode_diagram(graph: DiffusionGraph, low: float, high: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -58,17 +59,17 @@ def bode_diagram(graph: DiffusionGraph, low: float, high: float) -> tuple[np.nda
 
 
 if __name__ == "__main__":
-    n = 5
-    g = line(n)
+    g = line(10, 1, 1)
 
-    (t, input, output), a, phi = harmonic_response(g, 2e-1)
+    (t, input, output), a, phi = harmonic_response(g, 1e-1)
     print(f"Amplitude = {a}, Phase = {phi}")
     plt.plot(t, input, label="Input power")
-    plt.plot(t, output, label="First node temperature")
+    plt.plot(t, output, label="Mean temperature")
+    plt.xlabel("Time")
     plt.legend()
 
 
-    freqs, amplitudes, phases = bode_diagram(g, 0.01, 100)
+    freqs, amplitudes, phases = bode_diagram(g, 1e-1, 100)
     fig, (ax1, ax2) = plt.subplots(2)
     ax1.set_ylabel("Amplitude")
     # ax1.set_xlabel("Frequency")
@@ -80,4 +81,12 @@ if __name__ == "__main__":
     ax2.set_xlabel("Frequency")
     ax2.set_xscale("log")
     ax2.plot(freqs, phases)
+
+    plt.figure()
+    derlog = np.log(amplitudes)
+    derlog = derlog[1:] - derlog[:-1]
+    # print(derlog)
+    plt.xlabel("Frequency")
+    plt.semilogx()
+    plt.plot(freqs[:-1], derlog)
     plt.show()

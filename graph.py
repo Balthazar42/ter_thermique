@@ -42,19 +42,6 @@ class DiffusionGraph:
         self.pos = pos
         self.fig, self.ax = fig, ax # Matplotlib figure and axes
 
-    def mean_temp(self) -> float:
-        """
-        Weighted mean temperature of the graph
-        Constant over time if the system is isolated
-        """
-        return np.sum(self.C * self.T) / np.sum(self.C)
-
-    def msd_temp(self) -> float:
-        """
-        Weighted mean square deviation of the temperatures
-        Monotonically decreasing over time if the system is isolated
-        """
-        return np.sum(self.C * (self.T - self.mean_temp()) ** 2) / np.sum(self.C)
 
     def draw_vertices(self) -> Artist:
         """
@@ -191,6 +178,21 @@ class DiffusionGraph:
 
         return t, T
 
+    def mean_temp(self, T: np.ndarray) -> np.ndarray:
+        """
+        Weighted mean temperature of the graph,
+        given an array of temperatures as computed by DiffusionGraph.simulate
+        Constant over time if the system is isolated
+        """
+        return self.C @ T / np.sum(self.C)
+
+    def msd_temp(self, T: np.ndarray) -> float:
+        """
+        Weighted mean square deviation of the temperatures,
+        given an array of temperatures as computed by DiffusionGraph.simulate
+        Monotonically decreasing over time if the system is isolated
+        """
+        return self.C @ (T - self.mean_temp(T)) ** 2 / np.sum(self.C)
 
 
 
@@ -232,13 +234,15 @@ gigraphe = DiffusionGraph(
 )
 
 
-def line(n: int, period: float=None) -> DiffusionGraph:
+def line(n: int, cap: float=1, cond: float=1, period: float=None) -> DiffusionGraph:
     """
     Create a line graph with uniform capacitance and conductance
     Optionally, force the first vertex's temperature to follow
     the function of time 10*sin(2pi/T)
 
     :param n: Number of vertices
+    :param cap: Capacitance of the vertices
+    :param cond: Conductance of the edges
     :param period: Optional period of the first vertex's temperature oscillation
     :return: Line graph
     """
@@ -246,9 +250,10 @@ def line(n: int, period: float=None) -> DiffusionGraph:
     for i in range(n-1):
         G[i, i+1] = 1
         G[i+1, i] = 1
+    G *= cond
     g = DiffusionGraph(
         n=n,
-        C=np.ones(n),
+        C=cap*np.ones(n),
         G=G,
         pos=np.stack((np.arange(n), np.zeros(n)), axis=1)
     )
@@ -295,16 +300,20 @@ def plane(p: int, q: int) -> DiffusionGraph:
 
 
 if __name__ == "__main__":
-    p, q = 5, 5
-    g = plane(p, q)
-    # g.boundary_conditions[12] = lambda gr, i: 10 * np.sin(2*np.pi/10*gr.t)
-    initial = np.random.uniform(-10, 10, (p, q))
-    t, T = g.simulate(
-        t_start=0,
-        t_end=15,
-        dt=0.1,
-        initial=initial.flatten(),
-    )
-    print(t.shape, T.shape)
-    print(t[0], T[:, 0])
-    print(t[-1], T[:, -1])
+    # p, q = 5, 5
+    # g = plane(p, q)
+    # # g.boundary_conditions[12] = lambda gr, i: 10 * np.sin(2*np.pi/10*gr.t)
+    # initial = np.random.uniform(-10, 10, (p, q))
+    # t, T = g.simulate(
+    #     t_start=0,
+    #     t_end=15,
+    #     dt=0.1,
+    #     initial=initial.flatten(),
+    # )
+    # print(t.shape, T.shape)
+    # print(t[0], T[:, 0])
+    # print(t[-1], T[:, -1])
+
+    g = line(5, 1, 1)
+    print(g.A)
+    print(np.linalg.eigh(g.A))
