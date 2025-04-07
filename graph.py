@@ -266,13 +266,15 @@ def line(n: int, cap: float=1, cond: float=1, period: float=None) -> DiffusionGr
     return g
 
 
-def plane(p: int, q: int) -> DiffusionGraph:
+def plane(p: int, q: int, cap: float=1, cond:float=1) -> DiffusionGraph:
     """
     Create a square grid graph with uniform capacitance and conductance
 
 
     :param p: Number of lines
     :param q: Number of columns
+    :param cap: Capacitance of the vertices
+    :param cond: Conductance of the edges
     :return: Plane graph
     """
 
@@ -292,8 +294,8 @@ def plane(p: int, q: int) -> DiffusionGraph:
     pos = np.stack((x.flatten(), y.flatten()), axis=1)
     g = DiffusionGraph(
         n=p*q,
-        C=np.ones(p*q),
-        G=G*0.1,
+        C=cap*np.ones(p*q),
+        G=cond*G,
         pos=pos,
     )
     return g

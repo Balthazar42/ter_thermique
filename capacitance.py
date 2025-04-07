@@ -38,10 +38,10 @@ def harmonic_response(graph: DiffusionGraph, freq: float) -> tuple[tuple[np.ndar
         dt=1 / (freq * 1000),
         initial=np.zeros(graph.n),
     )
-    mean_T = graph.mean_temp(T)
+    selected_T = T[0]
 
-    m = 1/1000 * np.sum(mean_T[-1000:] * np.exp(-2j * np.pi * freq * t[-1000:]))
-    return (t, power(t), mean_T), 2 * np.abs(m), np.angle(m) + np.pi / 2
+    m = 1/1000 * np.sum(selected_T[-1000:] * np.exp(-2j * np.pi * freq * t[-1000:]))
+    return (t, power(t), selected_T), 2 * np.abs(m), np.angle(m) + np.pi / 2
 
 
 def bode_diagram(graph: DiffusionGraph, low: float, high: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
