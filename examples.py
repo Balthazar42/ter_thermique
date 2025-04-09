@@ -91,6 +91,25 @@ import matplotlib.pyplot as plt
 # ax2.plot(t, msd_T)
 # plt.show()
 
+# Conductance négative
+# g = DiffusionGraph(
+#     n=3,
+#     C=np.array([1, 1, 1]),
+#     G=0.1 * np.array([
+#         [0, 1, 1],
+#         [1, 0, -1],
+#         [1, -1, 0],
+#     ]),
+#     pos=np.array([[-1, 0], [0, 1], [1, 0]]),
+# )
+# anim = g.animate(
+#     t_start=0,
+#     t_end=20,
+#     dt=0.1,
+#     initial=np.array([0, 1, 2]),
+# )
+# plt.show()ex
+
 
 # Tests en régime harmonique (work in progress)
 # g = line(10, 1, 1)
