@@ -12,7 +12,7 @@ class DiffusionGraph:
     """
     A graph modeling heat conduction in a network of capacitive bodies at uniform temperatures
     """
-    def __init__(self, n: int, C: np.ndarray, G: np.ndarray, pos: np.ndarray, fig: Figure=None, ax: Axes=None):
+    def __init__(self, n: int, C: np.ndarray, G: np.ndarray, pos: np.ndarray=None, fig: Figure=None, ax: Axes=None):
         """
         :param n: number of vertices
         :param C: capacitance of each vertex, n positive floats
@@ -39,7 +39,10 @@ class DiffusionGraph:
         self.T = np.zeros(n)    # Temperatures of the nodes
 
         # Plotting information
-        self.pos = pos
+        if pos is not None:
+            self.pos = pos
+        else:
+            self.pos = np.zeros((n, 2))
         self.fig, self.ax = fig, ax # Matplotlib figure and axes
 
 
